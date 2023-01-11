@@ -93,3 +93,113 @@ exports.getSellAmount = (req, res) => {
         });
     });
 };
+
+
+exports.avgSell = (req, res) => {
+
+    month = req.params.month;
+
+    const query = `select avg(shopping_card.total_price) as avgSell
+                   from shopping_card
+                   where month(shopping_card.date) = '${month}'`;
+
+    connection.query(query, (err, rows) => {
+        if (err) return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
+
+        res.status(200).json({
+            status: 'successful',
+            avgSell: rows
+
+        });
+    });
+};
+
+
+exports.getSuppliers = (req, res) => {
+
+    const city = req.params.city;
+
+    connection.query(`select name from supplier where city = '${city}'`, (err, rows) => {
+        if (err) return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
+
+        res.status(200).json({
+            status: 'successful',
+            suppliers: rows
+        });
+    });
+};
+
+
+exports.addProduct = (req, res, next) => {
+
+    let values = ``;
+    let column = ``;
+
+    for (x in req.body) {
+
+        if (x === "ID" || x === "price") {
+            values += `${req.body[x]},`;
+            column += `${x},`;
+        } else {
+            values += `'${req.body[x]}',`;
+            column += `${x},`;
+        }
+    }
+
+    values = values.replace(/,\s*$/, "");
+    column = column.replace(/,\s*$/, "");
+
+    const query = `insert into product(${column}) values(${values})`;
+
+    connection.query(query, (err) => {
+        if (err)
+            return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
+
+        res.status(200).json({
+            status: 'successful',
+
+        });
+    });
+};
+
+
+exports.updateProduct = (req, res) => {
+
+    id = req.params.id;
+
+    let set_command = `set`;
+
+    for (x in req.body)
+        set_command += ` ${x} = '${req.body[x]}',`;
+
+
+    set_command = set_command.replace(/,\s*$/, "");
+
+    const query = `update product ${set_command} where product.ID = '${id}'`;
+
+    connection.query(query, (err) => {
+        if (err) return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
+
+        res.status(200).json({
+            status: 'successful',
+
+        });
+    });
+};
+
+
+exports.deleteProduct = (req, res) => {
+
+    id = req.params.id;
+
+    const query = `delete from product where product.ID = '${id}'`;
+
+    connection.query(query, (err) => {
+        if (err) return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
+
+        res.status(200).json({
+            status: 'successful',
+
+        });
+    });
+};

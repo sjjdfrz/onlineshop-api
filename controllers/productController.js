@@ -1,6 +1,18 @@
 const connection = require("../models/model");
 const AppError = require('../Utils/appError');
 
+exports.getProducts = (req, res) => {
+
+    connection.query('select name from product', (err, rows) => {
+        if (err) return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
+
+        res.status(200).json({
+            status: 'successful',
+            product: rows
+        });
+    });
+};
+
 
 exports.getBestSelling = (req, res) => {
 
@@ -36,6 +48,43 @@ exports.getBestSelling = (req, res) => {
 };
 
 
+exports.topSuggest = (req, res) => {
+
+    connection.query(`select name, amount
+                      from discount, product
+                      where discount.product_ID = product.ID and discount.amount > 15
+                      order by amount desc`, (err, rows) => {
+        if (err) return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
+
+        res.status(200).json({
+            status: 'successful',
+            suggests: rows
+        });
+    });
+};
+
+
+exports.getProductSellers = (req, res) => {
+
+    id = req.params.id;
+
+
+    const query = `select supplier.name
+                   from product, supplier, product_has_supplier
+                   where product.ID = product_has_supplier.product_ID and product_has_supplier.supplier_ID = supplier.ID and product.ID = '${id}'`;
+
+    connection.query(query, (err, rows) => {
+        if (err) return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
+
+        res.status(200).json({
+            status: 'successful',
+            sellers: rows
+
+        });
+    });
+};
+
+
 exports.getCheapestSeller = (req, res) => {
 
     id = req.params.id;
@@ -54,6 +103,64 @@ exports.getCheapestSeller = (req, res) => {
             status: 'successful',
             seller: rows
 
+        });
+    });
+};
+
+
+exports.getComments = (req, res) => {
+
+    const id = req.params.id;
+    const query = `select comment.description as description, comment.score as score
+                   from comment, product
+                   where comment.product_ID = product.ID and product.ID = '${id}'`;
+
+    connection.query(query, (err, rows) => {
+        if (err) return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
+
+        res.status(200).json({
+            status: 'successful',
+            comments: rows
+        });
+    });
+};
+
+
+exports.top3comments = (req, res) => {
+
+    const id = req.params.id;
+    const query = `select comment.description as description, comment.score as score
+                   from comment, product
+                   where comment.product_ID = product.ID and product.ID = '${id}'
+                   order by comment.score desc
+                   limit 3`;
+
+    connection.query(query, (err, rows) => {
+        if (err) return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
+
+        res.status(200).json({
+            status: 'successful',
+            comments: rows
+        });
+    });
+};
+
+
+exports.worst3comments = (req, res) => {
+
+    const id = req.params.id;
+    const query = `select comment.description as description, comment.score as score
+                   from comment, product
+                   where comment.product_ID = product.ID and product.ID = '${id}'
+                   order by comment.score
+                   limit 3`;
+
+    connection.query(query, (err, rows) => {
+        if (err) return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
+
+        res.status(200).json({
+            status: 'successful',
+            comments: rows
         });
     });
 };

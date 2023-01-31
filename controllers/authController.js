@@ -7,13 +7,14 @@ const connection = require("../models/model");
 JWT_SECRET = 'secure-ultra-and-long-secret';
 JWT_EXPIRES_IN = 90;
 
+// create token
 const signToken = id => {
     return jwt.sign({id}, JWT_SECRET, {
         expiresIn: JWT_EXPIRES_IN * 24 * 60 * 60 * 1000
     });
 };
 
-
+// send token and save on cookie
 const createSendToken = (id, statusCode, res) => {
     const token = signToken(id);
     const cookieOptions = {
@@ -39,7 +40,7 @@ exports.signup = (req, res, next) => {
     let values2 = ``;
     let column2 = ``;
 
-    for (x in req.body) {
+    for (let x in req.body) {
 
         if (x === "email" || x === "password") {
             values2 += `${req.body[x]},`;
@@ -72,8 +73,8 @@ exports.signup = (req, res, next) => {
 
 exports.login = (req, res, next) => {
 
-    email = req.body.email;
-    password = req.body.password;
+    const email = req.body.email;
+    const password = req.body.password;
 
     if (!email || !password)
         return next(new AppError('Please provide email and password!', 400));
@@ -138,10 +139,10 @@ exports.protect = async (req, res, next) => {
 
 };
 
-exports.restrictTo = (...roles) => {
+exports.restrictTo = (roles) => {
     return (req, res, next) => {
 
-        if (!roles.includes(req.user.role))
+        if (roles.localeCompare(req.user.role) === -1)
             return next(new AppError('You do not have permission to perform this action', 403));
 
         next();

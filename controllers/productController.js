@@ -1,9 +1,10 @@
 const connection = require("../models/model");
 const AppError = require('../Utils/appError');
 
-exports.getProducts = (req, res) => {
+exports.getProducts = (req, res, next) => {
 
-    connection.query('select name from product', (err, rows) => {
+    const query = 'select name from product';
+    connection.query(query, (err, rows) => {
         if (err) return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
 
         res.status(200).json({
@@ -14,17 +15,19 @@ exports.getProducts = (req, res) => {
 };
 
 
-exports.getBestSelling = (req, res) => {
 
-    month = req.params.month;
-    week = req.params.week;
+
+exports.getBestSelling = (req, res, next) => {
+
+    const month = req.params.month;
+    const week = req.params.week;
     let query;
 
     if (week) {
         query = `select shopping_card.product_name
                  from shopping_card
                  where month(shopping_card.date) = '${month}' and
-                 day(shopping_card.date) >=  '${((week - 1) * 7) + 1}' and day(shopping_card.date) <= '${week * 7}'
+                 day(shopping_card.date) >=  '${week * 7 - 6}' and day(shopping_card.date) <= '${week * 7}'
                  order by shopping_card.total_price desc 
                  limit 5`;
     } else {
@@ -35,25 +38,27 @@ exports.getBestSelling = (req, res) => {
                  limit 5`;
     }
 
-
     connection.query(query, (err, rows) => {
+
         if (err) return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
 
         res.status(200).json({
             status: 'successful',
             products: rows
-
         });
     });
 };
 
 
-exports.topSuggest = (req, res) => {
+exports.topSuggest = (req, res, next) => {
 
-    connection.query(`select name, amount
-                      from discount, product
-                      where discount.product_ID = product.ID and discount.amount > 15
-                      order by amount desc`, (err, rows) => {
+    const query = `select name, amount
+                  from discount, product
+                  where discount.product_ID = product.ID and discount.amount > 15
+                  order by amount desc`;
+
+    connection.query(query, (err, rows) => {
+
         if (err) return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
 
         res.status(200).json({
@@ -64,58 +69,57 @@ exports.topSuggest = (req, res) => {
 };
 
 
-exports.getProductSellers = (req, res) => {
+exports.getProductSellers = (req, res, next) => {
 
-    id = req.params.id;
-
+    const id = req.params.id;
 
     const query = `select supplier.name
                    from product, supplier, product_has_supplier
                    where product.ID = product_has_supplier.product_ID and product_has_supplier.supplier_ID = supplier.ID and product.ID = '${id}'`;
 
     connection.query(query, (err, rows) => {
+
         if (err) return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
 
         res.status(200).json({
             status: 'successful',
             sellers: rows
-
         });
     });
 };
 
 
-exports.getCheapestSeller = (req, res) => {
+exports.getCheapestSeller = (req, res, next) => {
 
-    id = req.params.id;
-
+    const id = req.params.id;
 
     const query = `select supplier.name
                    from product, supplier, product_has_supplier, bill
-                   where product.ID = product_has_supplier.product_ID and product_has_supplier.supplier_ID = supplier.ID and product.ID = '${id}'
+                   where product.ID = product_has_supplier.product_ID and product_has_supplier.supplier_ID = supplier.ID and supplier.ID = bill.supplier_ID and product.ID = '${id}'
                    order by bill.total_price / bill.count
                    limit 1`;
 
     connection.query(query, (err, rows) => {
+
         if (err) return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
 
         res.status(200).json({
             status: 'successful',
             seller: rows
-
         });
     });
 };
 
 
-exports.getComments = (req, res) => {
+exports.getComments = (req, res, next) => {
 
     const id = req.params.id;
-    const query = `select comment.description as description, comment.score as score
+    const query = `select comment.description as description, comment.score as score, product.name
                    from comment, product
                    where comment.product_ID = product.ID and product.ID = '${id}'`;
 
     connection.query(query, (err, rows) => {
+
         if (err) return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
 
         res.status(200).json({
@@ -126,7 +130,7 @@ exports.getComments = (req, res) => {
 };
 
 
-exports.top3comments = (req, res) => {
+exports.top3comments = (req, res, next) => {
 
     const id = req.params.id;
     const query = `select comment.description as description, comment.score as score
@@ -136,6 +140,7 @@ exports.top3comments = (req, res) => {
                    limit 3`;
 
     connection.query(query, (err, rows) => {
+
         if (err) return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
 
         res.status(200).json({
@@ -146,7 +151,7 @@ exports.top3comments = (req, res) => {
 };
 
 
-exports.worst3comments = (req, res) => {
+exports.worst3comments = (req, res, next) => {
 
     const id = req.params.id;
     const query = `select comment.description as description, comment.score as score
@@ -156,6 +161,7 @@ exports.worst3comments = (req, res) => {
                    limit 3`;
 
     connection.query(query, (err, rows) => {
+
         if (err) return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
 
         res.status(200).json({
@@ -166,9 +172,12 @@ exports.worst3comments = (req, res) => {
 };
 
 
-exports.getCategory = (req, res) => {
+exports.getCategory = (req, res, next) => {
 
-    connection.query('select distinct category from product', (err, rows) => {
+    const query = 'select distinct category from product';
+
+    connection.query(query, (err, rows) => {
+
         if (err) return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
 
         res.status(200).json({
@@ -179,10 +188,10 @@ exports.getCategory = (req, res) => {
 };
 
 
-exports.getSellAmount = (req, res) => {
+exports.getSellAmount = (req, res, next) => {
 
-    month = req.params.month;
-    id = req.params.id;
+    const month = req.params.month;
+    const id = req.params.id;
 
     const query = `select product.name, sum(shopping_card.total_price) as sell_amount
                    from product, shopping_card_has_product, shopping_card
@@ -191,42 +200,43 @@ exports.getSellAmount = (req, res) => {
                    product.ID = '${id}' and month(shopping_card.date) = '${month}'`;
 
     connection.query(query, (err, rows) => {
+
         if (err) return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
 
         res.status(200).json({
             status: 'successful',
             sellAmount: rows
-
         });
     });
 };
 
 
-exports.avgSell = (req, res) => {
+exports.avgSell = (req, res, next) => {
 
-    month = req.params.month;
-
+    const month = req.params.month;
     const query = `select avg(shopping_card.total_price) as avgSell
                    from shopping_card
                    where month(shopping_card.date) = '${month}'`;
 
     connection.query(query, (err, rows) => {
+
         if (err) return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
 
         res.status(200).json({
             status: 'successful',
             avgSell: rows
-
         });
     });
 };
 
 
-exports.getSuppliers = (req, res) => {
+exports.getSuppliers = (req, res, next) => {
 
     const city = req.params.city;
+    const query = `select name from supplier where city = '${city}'`;
 
-    connection.query(`select name from supplier where city = '${city}'`, (err, rows) => {
+    connection.query(query, (err, rows) => {
+
         if (err) return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
 
         res.status(200).json({
@@ -242,7 +252,7 @@ exports.addProduct = (req, res, next) => {
     let values = ``;
     let column = ``;
 
-    for (x in req.body) {
+    for (let x in req.body) {
 
         if (x === "ID" || x === "price") {
             values += `${req.body[x]},`;
@@ -259,54 +269,51 @@ exports.addProduct = (req, res, next) => {
     const query = `insert into product(${column}) values(${values})`;
 
     connection.query(query, (err) => {
-        if (err)
-            return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
+
+        if (err) return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
 
         res.status(200).json({
             status: 'successful',
-
         });
     });
 };
 
 
-exports.updateProduct = (req, res) => {
+exports.updateProduct = (req, res, next) => {
 
-    id = req.params.id;
+    const id = req.params.id;
 
     let set_command = `set`;
 
-    for (x in req.body)
+    for (let x in req.body)
         set_command += ` ${x} = '${req.body[x]}',`;
-
 
     set_command = set_command.replace(/,\s*$/, "");
 
     const query = `update product ${set_command} where product.ID = '${id}'`;
 
     connection.query(query, (err) => {
+
         if (err) return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
 
         res.status(200).json({
             status: 'successful',
-
         });
     });
 };
 
 
-exports.deleteProduct = (req, res) => {
+exports.deleteProduct = (req, res, next) => {
 
-    id = req.params.id;
-
+    const id = req.params.id;
     const query = `delete from product where product.ID = '${id}'`;
 
     connection.query(query, (err) => {
+
         if (err) return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
 
         res.status(200).json({
             status: 'successful',
-
         });
     });
 };

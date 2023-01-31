@@ -2,14 +2,15 @@ const connection = require("../models/model");
 const AppError = require('../Utils/appError');
 
 
-exports.getUsers = (req, res) => {
+exports.getUsers = (req, res, next) => {
 
-    city = req.params.city;
+    const city = req.params.city;
     let query;
+
     if (city)
         query = `select name from users where city = '${city}' and role != 'admin'`;
     else
-        query = `select * from users where role != 'admin'`;
+        query = `select name from users where role != 'admin'`;
 
     connection.query(query, (err, rows) => {
         if (err) return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
@@ -22,31 +23,41 @@ exports.getUsers = (req, res) => {
 };
 
 
-exports.getOrders = (req, res) => {
+exports.getOrders = (req, res, next) => {
 
     connection.query('select * from shopping_card', (err, rows) => {
         if (err) return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
 
         res.status(200).json({
             status: 'successful',
-            Orders: rows
+            orders: rows
         });
     });
 };
 
 
-exports.getTopTenUsers = (req, res) => {
+exports.getTopTenUsers = (req, res, next) => {
 
-    month = req.params.month;
-    week = req.params.week;
+    const month = req.params.month;
+    const week = req.params.week;
+    let query;
 
-
-    const query = `select users.name
+    if (week) {
+        query = `select users.name
+                 from users, shopping_card
+                 where users.ID = shopping_card.user_ID and month(shopping_card.date) = '${month}' and
+                 day(shopping_card.date) >=  '${week * 7 - 6}' and day(shopping_card.date) <= '${week * 7}'
+                 order by shopping_card.total_price desc 
+                 limit 10`;
+    }
+    else {
+        query = `select users.name
                    from users, shopping_card
-                   where users.ID = shopping_card.user_ID and month(shopping_card.date) = '${month}' and
-                   day(shopping_card.date) >=  '${((week - 1) * 7) + 1}' and day(shopping_card.date) <= '${week * 7}'
+                   where users.ID = shopping_card.user_ID and month(shopping_card.date) = '${month}'
                    order by shopping_card.total_price desc 
                    limit 10`;
+    }
+
 
     connection.query(query, (err, rows) => {
         if (err) return next(new AppError(`sqlMessage: ${err.sqlMessage}`, 400));
@@ -60,7 +71,7 @@ exports.getTopTenUsers = (req, res) => {
 };
 
 
-exports.lastTenOrders = (req, res) => {
+exports.lastTenOrders = (req, res, next) => {
 
     const id = req.params.id;
     const query = `select *
@@ -80,18 +91,18 @@ exports.lastTenOrders = (req, res) => {
 };
 
 
-exports.updateUser = (req, res) => {
+exports.updateUser = (req, res, next) => {
 
-    id = req.params.id;
+    const id = req.params.id;
 
     let set_command = `set`;
 
-    for (x in req.body) {
+    for (let x in req.body) {
 
         if (x === 'email' || x === 'password')
             set_command += ` profilePage.${x} = '${req.body[x]}',`;
         else
-            set_command += ` ${x} = '${req.body[x]}',`;
+            set_command += ` users.${x} = '${req.body[x]}',`;
     }
 
     set_command = set_command.replace(/,\s*$/, "");
